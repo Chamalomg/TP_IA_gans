@@ -27,10 +27,10 @@ def define_discriminator(in_shape=(32, 32, 3)):
     # downsample
     model.add(Conv2D(128, (3, 3), strides=(2, 2), padding='same'))
     model.add(LeakyReLU(alpha=0.2))
-    # downsample
+
     model.add(Conv2D(128, (3, 3), strides=(2, 2), padding='same'))
     model.add(LeakyReLU(alpha=0.2))
-    # downsample
+
     model.add(Conv2D(256, (3, 3), strides=(2, 2), padding='same'))
     model.add(LeakyReLU(alpha=0.2))
     # classifier
@@ -156,7 +156,7 @@ def summarize_performance(epoch, g_model, d_model, dataset, latent_dim, n_sample
     # save plot
     save_plot(x_fake, epoch)
     # save the generator model tile file
-    filename = 'generator_model_%03d.h5' % (epoch + 1)
+    filename = 'generator_model.h5'
     g_model.save(filename)
 
 
@@ -203,8 +203,8 @@ dataset = load_real_samples()
 
 
 # train model
-# train(g_model, d_model, gan_model, dataset, latent_dim)
-
+# train(g_model, d_model, gan_model, dataset, latent_dim, n_epochs=2, n_batch=2)
+summarize_performance(10, g_model, d_model, dataset, latent_dim)
 # example of loading the generator model and generating images
 
 
@@ -222,7 +222,7 @@ def create_plot(examples, n):
 
 
 # load model
-model = load_model('generator_model_200.h5')
+model = load_model('generator_model.h5')
 # generate images
 latent_points = generate_latent_points(100, 100)
 X = model.predict(latent_points)
@@ -241,3 +241,4 @@ X = (X + 1) / 2.0
 # plot the result
 pyplot.imshow(X[0, :, :])
 pyplot.show()
+print('ok')
