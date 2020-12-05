@@ -1,4 +1,6 @@
 # example of a dcgan on cifar10
+import random
+
 from numpy import zeros
 from numpy import ones
 from numpy.random import randint
@@ -18,8 +20,8 @@ from numpy import asarray
 from matplotlib import pyplot
 
 
-# define the standalone discriminator model
 def define_discriminator(in_shape=(32, 32, 3)):
+    """Define the standalone discriminator model"""
     model = Sequential()
     # normal
     model.add(Conv2D(64, (3, 3), padding='same', input_shape=in_shape))
@@ -43,8 +45,9 @@ def define_discriminator(in_shape=(32, 32, 3)):
     return model
 
 
-# define the standalone generator model
+
 def define_generator(latent_dim):
+    """define the standalone generator model"""
     model = Sequential()
     # foundation for 4x4 image
     n_nodes = 256 * 4 * 4
@@ -65,8 +68,9 @@ def define_generator(latent_dim):
     return model
 
 
-# define the combined generator and discriminator model, for updating the generator
+
 def define_gan(g_model, d_model):
+    """define the combined generator and discriminator model, for updating the generator"""
     # make weights in the discriminator not trainable
     d_model.trainable = False
     # connect them
@@ -81,8 +85,9 @@ def define_gan(g_model, d_model):
     return model
 
 
-# load and prepare cifar10 training images
+
 def load_real_samples():
+    """load and prepare cifar10 training images"""
     # load cifar10 dataset
     (trainX, _), (_, _) = load_data()
     # convert from unsigned ints to floats
@@ -92,8 +97,9 @@ def load_real_samples():
     return X
 
 
-# select real samples
+
 def generate_real_samples(dataset, n_samples):
+    """select real samples"""
     # choose random instances
     ix = randint(0, dataset.shape[0], n_samples)
     # retrieve selected images
@@ -103,28 +109,24 @@ def generate_real_samples(dataset, n_samples):
     return X, y
 
 
-# generate points in latent space as input for the generator
-def generate_latent_points(latent_dim, n_samples):
-    # generate points in the latent space
-    x_input = randn(latent_dim * n_samples)
-    # reshape into a batch of inputs for the network
-    x_input = x_input.reshape(n_samples, latent_dim)
-    return x_input
-
-
-# use the generator to generate n fake examples, with class labels
 def generate_fake_samples(g_model, latent_dim, n_samples):
-    # generate points in latent space
+    """Generate fake sample with random as, and label them as fake."""
     x_input = generate_latent_points(latent_dim, n_samples)
-    # predict outputs
     X = g_model.predict(x_input)
-    # create 'fake' class labels (0)
     y = zeros((n_samples, 1))
     return X, y
 
 
-# create and save a plot of generated images
+def generate_latent_points(latent_dim, n_samples):
+    """Normal distribution of latent_dim * n_samples
+    point in a np.array"""
+    x_input = randn(latent_dim * n_samples)
+    x_input = x_input.reshape(n_samples, latent_dim)
+    return x_input
+
+
 def save_plot(examples, epoch, n=7):
+    """create and save a plot of generated images"""
     # scale from [-1,1] to [0,1]
     examples = (examples + 1) / 2.0
     # plot images
@@ -141,8 +143,9 @@ def save_plot(examples, epoch, n=7):
     pyplot.close()
 
 
-# evaluate the discriminator, plot generated images, save generator model
+
 def summarize_performance(epoch, g_model, d_model, dataset, latent_dim, n_samples=150):
+    """evaluate the discriminator, plot generated images, save generator model"""
     # prepare real samples
     X_real, y_real = generate_real_samples(dataset, n_samples)
     # evaluate discriminator on real examples
@@ -160,26 +163,26 @@ def summarize_performance(epoch, g_model, d_model, dataset, latent_dim, n_sample
     g_model.save(filename)
 
 
-# train the generator and discriminator
 def train(g_model, d_model, gan_model, dataset, latent_dim, n_epochs=200, n_batch=128):
+    """train the generator and discriminator"""
     bat_per_epo = int(dataset.shape[0] / n_batch)
     half_batch = int(n_batch / 2)
     # manually enumerate epochs
     for i in range(n_epochs):
         # enumerate batches over the training set
         for j in range(bat_per_epo):
-            # get randomly selected 'real' samples
+            # Train discriminator
             X_real, y_real = generate_real_samples(dataset, half_batch)
-            # update discriminator model weights
             d_loss1, _ = d_model.train_on_batch(X_real, y_real)
-            # generate 'fake' examples
+
+            # generate 'fake' examples : train generator
             X_fake, y_fake = generate_fake_samples(g_model, latent_dim, half_batch)
-            # update discriminator model weights
             d_loss2, _ = d_model.train_on_batch(X_fake, y_fake)
+
             # prepare points in latent space as input for the generator
             X_gan = generate_latent_points(latent_dim, n_batch)
-            # create inverted labels for the fake samples
             y_gan = ones((n_batch, 1))
+
             # update the generator via the discriminator's error
             g_loss = gan_model.train_on_batch(X_gan, y_gan)
             # summarize loss on this batch
@@ -188,6 +191,21 @@ def train(g_model, d_model, gan_model, dataset, latent_dim, n_epochs=200, n_batc
         # evaluate the model performance, sometimes
         if (i + 1) % 10 == 0:
             summarize_performance(i, g_model, d_model, dataset, latent_dim)
+
+
+def create_plot(examples, n):
+    """plot the generated images"""
+    # plot images
+    for i in range(n * n):
+        # define subplot
+        pyplot.subplot(n, n, 1 + i)
+        # turn off axis
+        pyplot.axis('off')
+        # plot raw pixel data
+        pyplot.imshow(examples[i, :, :])
+    pyplot.show()
+    filename = 'generated_plot_e{}.png'.format(random.randint(0, 1000000))
+    pyplot.savefig(filename)
 
 
 # size of the latent space
@@ -202,43 +220,38 @@ gan_model = define_gan(g_model, d_model)
 dataset = load_real_samples()
 
 
+# for i in range(10):
+#     pyplot.imshow(dataset[4+i])
+#     pyplot.show()
+# print(len(dataset))
+
+
 # train model
-# train(g_model, d_model, gan_model, dataset, latent_dim, n_epochs=2, n_batch=2)
+train(g_model, d_model, gan_model, dataset, latent_dim, n_epochs=20, n_batch=20)
 summarize_performance(10, g_model, d_model, dataset, latent_dim)
 # example of loading the generator model and generating images
 
 
-# plot the generated images
-def create_plot(examples, n):
-    # plot images
-    for i in range(n * n):
-        # define subplot
-        pyplot.subplot(n, n, 1 + i)
-        # turn off axis
-        pyplot.axis('off')
-        # plot raw pixel data
-        pyplot.imshow(examples[i, :, :])
-    pyplot.show()
+def create(file):
+    """Create 10*10 img plot from the trained model <file>"""
+    model = load_model(file)
+    # generate images
+    latent_points = generate_latent_points(100, 100)
+    X = model.predict(latent_points)
+    # scale from [-1,1] to [0,1]
+    X = (X + 1) / 2.0
+    # plot the result
+    create_plot(X, 10)
 
 
-# load model
-model = load_model('generator_model.h5')
-# generate images
-latent_points = generate_latent_points(100, 100)
-X = model.predict(latent_points)
-# scale from [-1,1] to [0,1]
-X = (X + 1) / 2.0
-# plot the result
-create_plot(X, 10)
+create('generator_model_010.h5')
 
-
-# all 0s
-vector = asarray([[0.75 for _ in range(100)]])
-# generate image
-X = model.predict(vector)
-# scale from [-1,1] to [0,1]
-X = (X + 1) / 2.0
-# plot the result
-pyplot.imshow(X[0, :, :])
-pyplot.show()
-print('ok')
+# # all 0s
+# vector = asarray([[random.random()*10 for _ in range(100)]])
+# # generate image
+# X = model.predict(vector)
+# # scale from [-1,1] to [0,1]
+# X = (X + 1) / 2.0
+# # plot the result
+# pyplot.imshow(X[0, :, :])
+# pyplot.show()
