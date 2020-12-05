@@ -159,7 +159,7 @@ def summarize_performance(epoch, g_model, d_model, dataset, latent_dim, n_sample
     # save plot
     save_plot(x_fake, epoch)
     # save the generator model tile file
-    filename = 'generator_model.h5'
+    filename = '../trained_model/generator_model{}.h5'.format(random.randint(0, 100000000))
     g_model.save(filename)
 
 
@@ -233,7 +233,7 @@ summarize_performance(10, g_model, d_model, dataset, latent_dim)
 
 
 def create(file):
-    """Create 10*10 img plot from the trained model <file>"""
+    """Create 10*10 img plot from the trained_model <file>"""
     model = load_model(file)
     # generate images
     latent_points = generate_latent_points(100, 100)
@@ -244,7 +244,7 @@ def create(file):
     create_plot(X, 10)
 
 
-create('generator_model_010.h5')
+create('../trained_model/generator_model_010.h5')
 
 # # all 0s
 # vector = asarray([[random.random()*10 for _ in range(100)]])
